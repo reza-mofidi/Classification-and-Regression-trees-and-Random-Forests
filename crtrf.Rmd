@@ -1,0 +1,146 @@
+---
+title: "Decision Trees and Random Forest classifiers"
+author: "R Mofidi"
+date: "24/06/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Decision tree Analysis
+Decision Trees are a class of tree like graph algorithms. A decision tree uses this tree like structure to illustrate the possible decisions and their consequences. It is one way of combining an algorithm and a decision support tool as well as machine learning paradigm.  A decision tree consists of 3 constituents (no pun intended), a node which represents an attribute and a branch which represents the consequences of that attribute. Attributes can occur as a result of an active decision (decision nodes usually marked as a square), a chance node which is the consequences of an event outside of the decision makers’ control and an end node which denotes one of the possible final outcomes of the decision tree algorithm. The findings of decision tree can be illustrated in a compact and easy to follow format using an influence diagram which describes the relationship between actions and consequences.
+
+Decision tree classifiers utilise the topography of a decision tree to map observations about a target item to conclusions about the value of the target item. Where the target value has a finite set of values (ordinal or nominal). The process is known as a classification tree. If the Target value is a continuous variable it is called regression tree. The umbrella term Classification and Regression Tree (CART) is used to group both processes. It was devised by the distinguished American statistician Leo Breiman. The algorithms work from top down by choosing the variables which best splits a set of items into the intended classes. The algorithms created are simple to understand and require little preparation, It is possible to use categorical as well as continuous variables and create a white box model which is transparent to the user. It is possible to validate using statistical analysis such as a confusion matrix or receiver operator characteristic test.
+
+The process involves a series of simple steps the first of which involves identifying and using the variable which best separates the dataset in accordance with the outcome of interest. This creates 2 leaves or childeren nodes. the remaining dataset in each leaves is divided in a similar manner until the groups are  either too small or pure i.e. contain only a single outcome (pure). 
+
+The following example is created using a commonly encountered database in R known as the Iris database. This databse uses the width and length of the petal and sepal of iris floweres to classify the iris flowers into the 3 different species:
+1- Setosa
+2- Versicolor
+3- 	Virginica
+
+The follollowing code describes how decision trees (classification and Regression Trees) can be developed in R. 
+
+## install the appropriate libraries and datasets
+
+```{r}
+data(iris)
+library(caret)
+library(ggplot2)
+head(iris)
+```
+
+###separate training and test datasets
+
+This creates a training dataset for developing the tree and a testing dataset for cross validation:
+
+```{r}
+inTrain3<- createDataPartition(y=iris$Species, p=0.7, list=FALSE)
+trainingDS<- iris[inTrain3,]
+testingDS<- iris[-inTrain3,]
+dim (trainingDS); dim(testingDS)
+```
+
+#make a plot to view data separation
+```{r, echo=FALSE}
+qplot(Petal.Width, Sepal.Width, colour=Species, data=trainingDS)
+```
+
+# developing the decision tree "rpart" model.
+```{r}
+library(caret)
+modfit<- train(Species~.,method="rpart", data=trainingDS)
+print(modfit$finalModel)
+```
+
+##Plot modelfit classification Tree
+```{r, echo=FALSE}
+library(rattle)
+fancyRpartPlot(modfit$finalModel)
+```
+
+# Crossvalidation using perofrming the prediction on the testing sample:
+
+```{r}
+predict(modfit, newdata=testingDS)
+PredR<- predict(modfit, newdata=testingDS)
+summary(PredR)
+qplot(Petal.Width, Petal.Length, colour=PredR,data=testingDS, main = "out of sample accuracy")
+
+```
+
+##Random Forests and Ensamble Classifiers
+
+Ensemble Classifiers a consist of multiple classifiers which by themselves may be weak (i.e. have low predictive ability) but combining them into an ensemble improves their predictive ability significantly.  A similar concept exists in statistics with the difference that machine learning the ensembles contain a finite set of constituent algorithms whilst a statistical ensemble is infinite. The design of this class of algorithm is based on ensemble theory which states that a trained ensemble of algorithms can represent a single supervised trained algorithm. In general an ensemble algorithm functions better if it contains a diverse set of constituent algorithms. 
+
+In fact the individual constituents of the ensemble do not necessarily have to be weak classifiers, being part of the ensemble means that they do not need to be complex in structure which in turn helps protect against over-fitting (over-training). They key to a successful ensemble is “stochastic discrimination” which is discussed later. There are a number of classes of ensemble classifiers in existence they include:
+•	Bayes optimal classifiers
+•	Bootstrap aggregating methods such as Random forest classifiers
+•	Boosting: such as Adaboost 
+
+In this paper we discuss random forest classfiers
+
+### Random Forest classifiers
+
+An example of ensemble classifiers is the random forest. Random forests were first designed by the American data scientist Tin Kam Ho in the 1990s. Random forests are made up of (large) number of tree classifiers which are added together in an ensemble in order to improve their classification ability. It is a bootstrap aggregating method which means each of these decision tree classifiers contributes to the eventual decision with an equal weight. 
+
+Each tree acts as a weak classifier and together a large number of trees form a random forest and diversity of classifiers within the ensemble is the key to its performance. 
+
+ If you remember in order to develop an ensemble classifier two assumptions will need to be fulfilled. The 2nd of these two assumptions is that each weak classifier should make its choice independently of the other classifiers. This concept is called “Stochastic discrimination”.  In order to fulfil this assumption each decision tree needs to undergo a different training process using the same training data.  This is a dilemma as often the training data is scarce.  One way of getting around this is randomisation (random selection) of training data he used to train each tree classifier.  In order to develop a random forest during training process a number of hyperplanes are selected at random and are trained using a random sub set of they are available training data.  The final classification is performed using a majority vote
+
+The following is an example of a small random forest classifier created using the iris database described above:
+
+###loading the required packages and database
+```{r}
+data(iris); library(ggplot2); library(randomForest);library(caret)
+```
+
+###partitioning the data into training and testing sets
+```{r}
+inTrainRF<-createDataPartition(y=iris$Species, p=0.7, list=FALSE)
+training4<-iris[inTrainRF,]
+testing4<-iris[-inTrainRF,]
+```
+
+### Training the random forest classifier:
+This involves setting the output variable as the Species and the rest of the variables as input variables. 
+```{r}
+modFit<- train(Species~.,data=training4, method="rf", prox=TRUE)
+modFit
+```
+
+As you can see the in sample accuracy od the data is excellent and it overperforms most linear data models as well as Classification and regression  trees. clearly concerns regarding over-training (overfitting the data exists. This is why cross validation and data visualization is important. This is what the testing sample "testing4" is used for. 
+Random forests can be complicated in order to understand their underlying anatomy, it is possible to view the consituent trees making up the random forest classifier:
+
+```{r}
+getTree(modFit$finalModel,k=2)
+```
+
+#### Visualising the classifier
+
+```{r}
+irisP<- classCenter(training4[,c(3,4)], training4$Species, modFit$finalModel$prox)
+irisP<-as.data.frame(irisP);irisP$Species<- rownames(irisP)
+P<- qplot(Petal.Width, Petal.Length, col=Species, size=2,Shape=4,data=training4)
+P+geom_point(aes(x=Petal.Width, y=Petal.Length, col=Species), size=2, shape=4, data=irisP)
+```
+
+### Making the prediction in the testing sample
+This is the process of cross validation of the classifier. 
+
+```{r}
+pred<-predict(modFit, testing4) 
+testing4$predRight<-pred == testing4$Species
+table(pred,testing4$Species)
+```
+
+
+```{r echo=FALSE}
+qplot(Petal.Width, Petal.Length, colour=predRight,data=testing4, main = "out of sample accuracy of the Random Forest classifier")
+```
+
+Random forests are amongst the most powerful classifiers available and as you can see at a very basic level they are not too difficult to develop in R. Despite their complexity which can be a problem when dealing with large data sets, they are considered white-box classifiers. Well implemented random forests are more resiliant to overfitting Random forests have less variance than single decision trees.  
+
+Complexity when large ensambles are being used to analyse large datasets. This can be time consuming and complicated process. 
