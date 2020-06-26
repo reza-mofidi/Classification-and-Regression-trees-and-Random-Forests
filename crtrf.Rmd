@@ -3,8 +3,8 @@ title: "Decision Trees and Random Forest classifiers"
 author: "R Mofidi"
 date: "24/06/2020"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -273,6 +273,8 @@ It is easy to see that the variable "Region" is not going to contribute to the f
 The model used is called thr Generalised Boost Regression GBM model. This model starts with a tree algorithm and improvs upon it through gradient boosting described above. Further detail can be obtained from *"utils::browseVignettes("gbm")"*.  In this model the Wage variable is examined as a function of all the other variables apart form "Region" which is removed from the training data set (6):
 
 ```{r}
+library(gbm)
+library(ggplot2)
 Training5<- subset(training5, select = -c(region))
 Testing5<-subset(testing5, select=-c(region))
 modFitADA<- train(wage~.,method="gbm", data=Training5, verbose=FALSE)
