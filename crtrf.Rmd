@@ -26,6 +26,17 @@ The following example is created using a commonly encountered database in R know
 2- Versicolor
 3- 	Virginica
 
+The following boxplot illustrates how these variables differ in the 3 species of iris:
+
+```{r}
+par(mfrow=c(2,2))
+boxplot(Sepal.Length~Species, data = iris)
+boxplot(Sepal.Width~Species, data = iris)
+boxplot(Petal.Length~Species, data = iris)
+boxplot(Petal.Width~Species, data = iris)
+```
+
+
 The following code describes how decision trees (classification and Regression Trees) can be developed in R. 
 
 ### Install the appropriate libraries and datasets
@@ -176,10 +187,112 @@ The following plot illustrates the correct and incorrect classifications made by
 qplot(Petal.Width, Petal.Length, colour=predRight,data=testing4, main = "out of sample accuracy of the Random Forest classifier")
 ```
 
+
+```{r}
+plot(modFit, main="Random Forest and identifying Iris Species")
+```
+
+It is possible to examine the relative importance of each variable in constructing the eventual model. Using the Caret package it is possible to plot and visualise this
+
+```{r}
+ plot(varImp(object=modFit),main="RF - Variable Importance")
+```
+cc 
 Random forests are among the most powerful classifiers available and as you can see at a very basic level they are not too difficult to develop in R. Despite their complexity which can be a problem when dealing with large data sets, they are considered white-box classifiers. Well implemented random forests are more resilient to over fitting Random forests have less variance than single decision trees.
 
 Complexity when large ensembles are being used to analyse large data sets has been the main impediment to their use. Which makes random forests a victim of their own success. 
 This can be time consuming and complicated process in a world where there are many alternative machine learning algorithms. Because of this random forests are used less often than decision trees in healthcare informatics(5). I many ways healthcare informatics is behind the curve in implementing this class of classifiers as decision aids. 
+
+###Adaptive Boosting or Adaboost
+Adaptive boosing is another machine learning meta-algorithm which has been designed based on the ensamble theory. It is used in conjunction with other classifiers such as regression anlyasis or classification and regression trees in order to improve their predicitive accuracy. The weighted output of weaker classifiers are combined to improve the accuracy of the weaker classifiers. The resultant classifier is called the boosted classifier. Adaboost classifiers are very sensitive to noisy data but resistant to overfitting. This makes preprocessing steps such as normalisation important in their design. 
+
+The following example is an example of an Adaboost classifier. The data comes from i the *Institute for Local Self Reliance* (ILSR) database. It is a non profit NGO which advocates for reform of economic systems so that they embody social and democratic values.The Wages database records the wages of employees, their demograpphics and the type of employment.   
+
+This is an example of an adaboost classifier 
+
+### loading the appropriate packages
+
+```{r}
+## Data: Wage dataset, ISLR library
+library(ISLR); library(ggplot2); library(caret)
+data(Wage)
+```
+
+### Creating training and testing databsets
+
+As is customary the dataset is partitioned into mutually exclusive training and testing subgroups. In this project the partition is performed through random selection with 70% of dataset being used for training and 30% for testing and cross-validation. 
+
+```{r}
+inTrain<- createDataPartition(y=Wage$wage, p=0.7, list=FALSE)
+training5<- Wage[inTrain,]
+testing5<- Wage[-inTrain,]
+```
+
+### Analysis of the Wage variable as a function of other variables
+The main question which needs to be answered from the database is how income is related to socio-economic and demographic factors and the type of employment workers are engaged in. The following histogram illustrates the distribution in incomes:
+
+```{r, echo=FALSE}
+hist(Wage$wage*10^3, xlab = "Annual income (US$)", main = "ILSR Wages database")
+```
+
+
+```{r}
+mean(Wage$wage)
+sd(Wage$wage)
+```
+
+The following boxplot illustrates that annual incomes have remained unchanged during between 2003-2009. 
+
+```{r}
+boxplot(Wage$wage~Wage$year, ylab="Annual income '000 US$", xlab="Year")
+```
+
+### Linear regression analysis
+In this study there are 10 potential input variables which can be used to design the adaboost machine learning algorithm. Using multivariate regression analysis it is possible to identify the variables which have no correlation with the wage variable. These variables are unlikely to contribute to the eventual model design. 
+
+In order to able to perform multivariate regression analysis, age, marital status, education, region, jobclass, health and health insurance are converted to numeric variables:
+
+```{r}
+Wage$Marital<- as.numeric(Wage$maritl)
+Wage$Race<- as.numeric(Wage$race)
+Wage$Education<- as.numeric(Wage$education)
+Wage$Region<- as.numeric(Wage$region)
+Wage$Jobclass<- as.numeric(Wage$jobclass)
+Wage$Health<- as.numeric(Wage$health)
+```
+
+In the design of the multivariate regression model wage was set as a dependent variable, jobclass as independent variable and race, marital status, education, health and region were co-variates. 
+
+```{r}
+lmWage<- lm(wage~Jobclass+Race+Education+Health+Region+Marital, data=Wage)
+lmWage
+```
+
+It is easy to see that the variable "Region" is not going to contribute to the final model design so it will be removed prior to training the adaboost model. 
+
+The model used is called thr Generalised Boost Regression GBM model. This model starts with a tree algorithm and improvs upon it through gradient boosting described above. Further detail can be obtained from *"utils::browseVignettes("gbm")"*.  In this model the Wage variable is examined as a function of all the other variables apart form "Region" which is removed from the training data set (6):
+
+```{r}
+Training5<- subset(training5, select = -c(region))
+Testing5<-subset(testing5, select=-c(region))
+modFitADA<- train(wage~.,method="gbm", data=Training5, verbose=FALSE)
+print(modFitADA)
+```
+
+```{r}
+qplot(predict(modFitADA, Testing5),wage,data=Testing5)
+```
+
+The final plot illustrates the progress of the ensemble (root mean squared error) through boosting iterations. 
+
+```{r}
+plot(modFitADA)
+```
+
+
+## Conclusions
+Ensemble classifiers such as random forests and adaptive boosting algorithms are some of the most accurate classifiers in use today, both for classification and regression problems. They achieve this level of accuracy by using the collective power of imperfect "weak" classifiers. Random forests work through bagging which was described earlier whilst adaptive boosting algorithms improve the accuracy of classification through iterative improvements in the classification process. They are prone sensitive to noise and outlying variables and therefore need to be used with caution. 
+
 
 ## References
 
@@ -192,3 +305,5 @@ This can be time consuming and complicated process in a world where there are ma
 4- Prasad AM, Iverson LR, Liaw A. Newer classification and regression tree techniques: bagging and random forests for ecological prediction. Ecosystems. 2006;9(2):181-99.
 
 5- Masetic Z, Subasi A. Congestive heart failure detection using random forest classifier. Computer methods and programs in biomedicine. 2016;130:54-64.
+
+6- Freund Y, and Schapire RE (1997) “A decision-theoretic generalization of on-line learning and an application to boosting,” Journal of Computer and System Sciences, 55(1):119-139.
