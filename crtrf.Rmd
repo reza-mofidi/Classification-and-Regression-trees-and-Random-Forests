@@ -3,8 +3,8 @@ title: "Decision Trees and Random Forest classifiers"
 author: "R Mofidi"
 date: "24/06/2020"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -112,7 +112,7 @@ Decision trees are used extensively as classiﬁers and decision aids in many ar
 
 ## Random Forests and Ensemble Classifiers
 
-Ensemble Classifiers consist of multiple classifiers which by themselves may be weak (i.e. have low predictive ability) but combining them into an ensemble improves their predictive ability significantly.  A similar concept exists in statistics with the difference that machine learning the ensembles contain a finite set of constituent algorithms (and are used for practical machine learning), whilst a statistical ensemble is infinite and more of a theoretical construct. The design of this class of algorithms is based on the *ensemble theory* which states that a trained ensemble of algorithms can represent a single supervised trained algorithm. In general an ensemble algorithm functions better if it contains a diverse set of constituent algorithms trined on random selection of the data. 
+Ensemble Classifiers consist of multiple classifiers which by themselves may be weak (i.e. have low predictive ability) but combining them into an ensemble improves their predictive ability significantly.  A similar concept exists in statistics with the difference that machine learning the ensembles contain a finite set of constituent algorithms (and are used for practical machine learning), whilst a statistical ensemble is infinite and more of a theoretical construct. The design of this class of algorithms is based on the *ensemble theory* which states that a trained ensemble of algorithms can represent a single supervised trained algorithm. In general an ensemble algorithm functions better if it contains a diverse set of constituent algorithms trained on random selection of the data. 
 
 
 In fact the individual constituents of the ensemble do not necessarily have to be weak classifiers, being part of the ensemble means that they do not need to be complex in structure which in turn helps protect against over-fitting (over-training). They key to a successful ensemble is “stochastic discrimination” which is discussed below. There are a few types of ensemble classifiers in existence including:
@@ -130,14 +130,18 @@ An example of ensemble classifiers are random forests. Random forests were first
 
 If you remember in order to develop an ensemble classifier two assumptions will need to be fulfilled. The second of these two assumptions was that each weak classifier should make its choice independently of the other classifiers. This concept is called “Stochastic discrimination”.  In order to fulfill this assumption each decision tree needs to undergo a different training process using a random selection of the training data set. This is why large, yet discrete datasets are ideal for random forests. This is a dilemma as often the training data is scarce.  One way of getting around this is randomization (random selection) of training data he used to train each tree classifier.  In order to develop a random forest during training process a number of hyperplanes are selected at random and are trained using a random sub set of they are available training data.  The final classification is performed using a majority vote system to perform the classification task. 
 
-The following is an example of a small random forest classifier created using the iris database described above:
+The following is an example of a small random forest classifier created using the iris database which is described above:
 
 ### Loading the required packages and database
+
 ```{r}
 data(iris); library(ggplot2); library(randomForest);library(caret)
 ```
 
 ### Partitioning the data into training and testing sets
+
+In order to reduce the risks of over training and avoid over estimating the accuracy of the model in the general population, it is important to perform cross validation. Cross validation involves the random selection of a proportion of the dataset for training the machine learning model. The remainder of the data is held out and used for out of sample testing of the accuracy of the model (so called cross-validation). Every machine learning requires this step.Therefore the Caret package has a function called createDataPartition which performs this task: 
+
 ```{r}
 inTrainRF<-createDataPartition(y=iris$Species, p=0.7, list=FALSE)
 training4<-iris[inTrainRF,]
@@ -145,16 +149,16 @@ testing4<-iris[-inTrainRF,]
 ```
 
 ### Training the random forest classifier:
-This involves setting the output variable as the Species and the rest of the variables as input variables. 
+Training the random forest classifier involves setting an output variable. In this data set the output variable of interest is the Species (of iris) and the rest of the variables which are the dimensions of the petal and sepal are set as input variables. 
 
 ```{r}
 modFit<- train(Species~.,data=training4, method="rf", prox=TRUE)
 modFit
 ```
 
-As you can see the in sample accuracy of the data is excellent and it over performs most linear data models as well as classification and regression  trees (only marginally). Clearly concerns regarding over-training (over fitting) the data exists. This is why cross validation and data visualization is important. This is what the testing sample "testing4" is used for. 
+As you can see the in sample accuracy of the random forest is excellent. In more complicated larger datasets it over performs most linear data models as well as classification and regression  trees (only marginally). Clearly concerns regarding over-training (over fitting) the data exists. This is why cross validation and data visualization is important. This is what the testing sample "testing4" is used for and at a basic level this is useful for assessing whether the resultant random forest is a useful predictor of species based on the dimension of the flowers in the general population of iris.  
 
-Random forests can be complicated in order to understand their underlying anatomy, it is possible to view the constituent trees making up the random forest classifier:
+Random forests can be complicated and understanding them is the key to maintaining them as a whitebox model. Many machine learning algorithms such as artificial neural networks do not exhibit adequate level of transparency  in data analysis and are considered "black box models". In order to understand the underlying anatomy of the random forest model, it is possible to view the constituent trees making up the random forest classifier. This is much more difficult but still possible  if a large random forest with 100s of constituent trees is used:
 
 ```{r}
 getTree(modFit$finalModel,k=2)
@@ -171,6 +175,7 @@ P+geom_point(aes(x=Petal.Width, y=Petal.Length, col=Species), size=2, shape=4, d
 
 
 ### Making the prediction in the testing sample
+
 The following R script codes for the process of cross validation of the classifier. 
 
 ```{r}
@@ -180,30 +185,34 @@ table(pred,testing4$Species)
 ```
 
 
-The following plot illustrates the correct and incorrect classifications made by the random forest. 
+The following graph illustrates the correct and incorrect classifications made by the random forest classifier. As you can see the random forest is very accurate in classifying the 3 species of iris.   
 
 
 ```{r echo=FALSE}
 qplot(Petal.Width, Petal.Length, colour=predRight,data=testing4, main = "out of sample accuracy of the Random Forest classifier")
 ```
 
+The next plot is illustrates how the ensemble become more accurate through the training (bagging) process. This can be considered the learning curve of the random forest. 
 
 ```{r}
 plot(modFit, main="Random Forest and identifying Iris Species")
 ```
 
-It is possible to examine the relative importance of each variable in constructing the eventual model. Using the Caret package it is possible to plot and visualise this
+It is possible to examine the relative importance of each variable in constructing the eventual model. Using the Caret package it is possible to plot and visualise this: 
 
 ```{r}
  plot(varImp(object=modFit),main="RF - Variable Importance")
 ```
-cc 
+
+
 Random forests are among the most powerful classifiers available and as you can see at a very basic level they are not too difficult to develop in R. Despite their complexity which can be a problem when dealing with large data sets, they are considered white-box classifiers. Well implemented random forests are more resilient to over fitting Random forests have less variance than single decision trees.
 
 Complexity when large ensembles are being used to analyse large data sets has been the main impediment to their use. Which makes random forests a victim of their own success. 
 This can be time consuming and complicated process in a world where there are many alternative machine learning algorithms. Because of this random forests are used less often than decision trees in healthcare informatics(5). I many ways healthcare informatics is behind the curve in implementing this class of classifiers as decision aids. 
 
-###Adaptive Boosting or Adaboost
+
+### Adaptive Boosting or Adaboost
+
 Adaptive boosing is another machine learning meta-algorithm which has been designed based on the ensamble theory. It is used in conjunction with other classifiers such as regression anlyasis or classification and regression trees in order to improve their predicitive accuracy. The weighted output of weaker classifiers are combined to improve the accuracy of the weaker classifiers. The resultant classifier is called the boosted classifier. Adaboost classifiers are very sensitive to noisy data but resistant to overfitting. This makes preprocessing steps such as normalisation important in their design. 
 
 The following example is an example of an Adaboost classifier. The data comes from i the *Institute for Local Self Reliance* (ILSR) database. It is a non profit NGO which advocates for reform of economic systems so that they embody social and democratic values.The Wages database records the wages of employees, their demograpphics and the type of employment.   
